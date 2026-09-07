@@ -98,9 +98,6 @@ namespace OneShotPvP.Server
 
             // Полностью очищаем состояние предыдущего раунда.
             _alivePlayers.Clear();
-=========
-            // Полностью очищаем состояние предыдущего раунда.
-            _alivePlayers.Clear();
             _manaManager.Clear();
 
             _roundActive = true;
