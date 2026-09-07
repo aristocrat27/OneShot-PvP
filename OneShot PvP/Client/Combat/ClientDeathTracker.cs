@@ -7,6 +7,8 @@ namespace OneShotPvP.Client
         private static bool _initialized;
         private static bool _deathReported;
 
+        private static ClientNetManager _network;
+
         public static void Initialize(
             ClientNetManager network)
         {
@@ -17,6 +19,8 @@ namespace OneShotPvP.Client
 
             _initialized = true;
             _deathReported = false;
+
+            _network = network;
 
             On.HeroController.Update +=
                 OnHeroUpdate;
@@ -34,6 +38,13 @@ namespace OneShotPvP.Client
 
             if (self == null)
             {
+                return;
+            }
+
+            if (!RoundClientManager.IsRoundActive)
+            {
+                _deathReported = false;
+
                 return;
             }
 
@@ -71,15 +82,53 @@ namespace OneShotPvP.Client
 
         private static void OnPlayerDeath()
         {
+            ushort killerId;
+
+            if (!LastAttackerTracker.TryGetLastAttacker(
+                out killerId))
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport was not sent: " +
+                    "last attacker was not found."
+                );
+
+                return;
+            }
+
             Modding.Logger.Log(
-                "[OneShotPvP] Player death detected. " +
-                "Killer detection is currently handled separately."
+                "[OneShotPvP] Killer detected. " +
+                "KillerId=" +
+                killerId
             );
+
+            if (_network == null)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport was not sent: " +
+                    "network is null."
+                );
+
+                return;
+            }
+
+            _network.SendDeathReport(
+                killerId
+            );
+
+            Modding.Logger.Log(
+                "[OneShotPvP] DeathReport sent. " +
+                "KillerId=" +
+                killerId
+            );
+
+            LastAttackerTracker.Clear();
         }
 
         public static void Reset()
         {
             _deathReported = false;
+
+            LastAttackerTracker.Clear();
 
             Modding.Logger.Log(
                 "[OneShotPvP] ClientDeathTracker reset."
@@ -89,6 +138,8 @@ namespace OneShotPvP.Client
         public static void Clear()
         {
             _deathReported = false;
+
+            LastAttackerTracker.Clear();
         }
     }
 }

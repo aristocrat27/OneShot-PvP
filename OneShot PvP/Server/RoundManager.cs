@@ -96,7 +96,6 @@ namespace OneShotPvP.Server
                 return false;
             }
 
-            // Полностью очищаем состояние предыдущего раунда.
             _alivePlayers.Clear();
             _manaManager.Clear();
 
@@ -111,13 +110,11 @@ namespace OneShotPvP.Server
                     playerId
                 );
 
-                // Каждый новый раунд начинается с 33 MP.
                 _manaManager.AddPlayer(
                     playerId
                 );
             }
 
-            // Сначала отправляем состояние маны.
             foreach (IServerPlayer player in players)
             {
                 if (_network == null)
@@ -130,7 +127,6 @@ namespace OneShotPvP.Server
                 );
             }
 
-            // Затем запускаем раунд на клиентах.
             foreach (IServerPlayer player in players)
             {
                 if (_network == null)
@@ -151,6 +147,96 @@ namespace OneShotPvP.Server
                 "[OneShotPvP] Round started. " +
                 "Alive players=" +
                 _alivePlayers.Count
+            );
+
+            return true;
+        }
+
+        public bool StartTestRound(
+            ushort realPlayerId,
+            ushort virtualPlayerId1,
+            ushort virtualPlayerId2)
+        {
+            if (_roundActive)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] StartTestRound rejected: " +
+                    "round is already active."
+                );
+
+                return false;
+            }
+
+            if (realPlayerId == virtualPlayerId1 ||
+                realPlayerId == virtualPlayerId2 ||
+                virtualPlayerId1 == virtualPlayerId2)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] StartTestRound rejected: " +
+                    "test player IDs are not unique."
+                );
+
+                return false;
+            }
+
+            if (!_damageSettings.ApplyForRound())
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] StartTestRound rejected: " +
+                    "failed to apply damage settings."
+                );
+
+                return false;
+            }
+
+            _alivePlayers.Clear();
+            _manaManager.Clear();
+
+            _roundActive = true;
+
+            _alivePlayers.Add(
+                realPlayerId
+            );
+
+            _alivePlayers.Add(
+                virtualPlayerId1
+            );
+
+            _alivePlayers.Add(
+                virtualPlayerId2
+            );
+
+            _manaManager.AddPlayer(
+                realPlayerId
+            );
+
+            _manaManager.AddPlayer(
+                virtualPlayerId1
+            );
+
+            _manaManager.AddPlayer(
+                virtualPlayerId2
+            );
+
+            if (_network != null)
+            {
+                _network.SendInitialMana(
+                    realPlayerId
+                );
+
+                _network.SendRoundStart(
+                    realPlayerId
+                );
+            }
+
+            Modding.Logger.Log(
+                "[OneShotPvP] Test round started. " +
+                "RealPlayerId=" +
+                realPlayerId +
+                " VirtualPlayer1=" +
+                virtualPlayerId1 +
+                " VirtualPlayer2=" +
+                virtualPlayerId2
             );
 
             return true;
@@ -241,8 +327,6 @@ namespace OneShotPvP.Server
                 return;
             }
 
-            // Раунд заканчивается ТОЛЬКО когда
-            // остался ровно один живой игрок.
             if (_alivePlayers.Count != 1)
             {
                 return;
@@ -297,8 +381,6 @@ namespace OneShotPvP.Server
                 );
             }
 
-            // Клиенты должны узнать о завершении ДО очистки
-            // серверного состояния.
             if (_network != null)
             {
                 _network.BroadcastRoundEnd(
@@ -306,10 +388,8 @@ namespace OneShotPvP.Server
                 );
             }
 
-            // Возвращаем оригинальные PvP-настройки HKMP.
             _damageSettings.Restore();
 
-            // Следующий /start должен начинать всё с чистого состояния.
             _manaManager.Clear();
 
             _alivePlayers.Clear();

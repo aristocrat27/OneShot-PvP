@@ -144,6 +144,40 @@ namespace OneShotPvP.Server
                 killerId
             );
 
+            if (!_roundManager.IsRoundActive)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport rejected: " +
+                    "round is not active."
+                );
+
+                return;
+            }
+
+            if (!_roundManager.IsAlive(victimId))
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport rejected: " +
+                    "victim is not alive in current round. " +
+                    "VictimId=" +
+                    victimId
+                );
+
+                return;
+            }
+
+            if (!_roundManager.IsAlive(killerId))
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport rejected: " +
+                    "killer is not alive in current round. " +
+                    "KillerId=" +
+                    killerId
+                );
+
+                return;
+            }
+
             if (killerId == victimId)
             {
                 Modding.Logger.Log(

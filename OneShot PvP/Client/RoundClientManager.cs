@@ -23,6 +23,8 @@ namespace OneShotPvP.Client
 
             _deadPlayers.Clear();
 
+            LastAttackerTracker.Clear();
+
             SetOneHealth();
 
             ClientManaManager.StartRound();
@@ -51,7 +53,9 @@ namespace OneShotPvP.Client
 
             _deadPlayers.Clear();
 
-            ClientManaManager.EndRound();
+            LastAttackerTracker.Clear();
+
+            ClientManaManager.Clear();
 
             Modding.Logger.Log(
                 "[OneShotPvP] Client round ended. " +
@@ -115,6 +119,8 @@ namespace OneShotPvP.Client
             _roundActive = false;
 
             _deadPlayers.Clear();
+
+            LastAttackerTracker.Clear();
 
             ClientManaManager.Clear();
 
