@@ -96,6 +96,7 @@ namespace OneShotPvP.Server
                 return false;
             }
 
+            // Полностью очищаем состояние предыдущего раунда.
             _alivePlayers.Clear();
             _manaManager.Clear();
 
@@ -322,11 +323,8 @@ namespace OneShotPvP.Server
 
         private void CheckRoundEnd()
         {
-            if (!_roundActive)
-            {
-                return;
-            }
-
+            // Раунд заканчивается ТОЛЬКО когда
+            // остался ровно один живой игрок.
             if (_alivePlayers.Count != 1)
             {
                 return;
