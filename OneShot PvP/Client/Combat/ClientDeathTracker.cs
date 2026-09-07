@@ -22,106 +22,75 @@ namespace OneShotPvP.Client
 
             _network = network;
 
-            On.HeroController.Update +=
-                OnHeroUpdate;
-
             Modding.Logger.Log(
                 "[OneShotPvP] ClientDeathTracker initialized."
             );
         }
 
-        private static void OnHeroUpdate(
-            On.HeroController.orig_Update orig,
-            HeroController self)
+        public static void ReportPvpDeath(
+            ushort killerId)
         {
-            orig(self);
-
-            if (self == null)
+            if (!_initialized)
             {
+                Modding.Logger.Log(
+                    "[OneShotPvP] ReportPvpDeath ignored: " +
+                    "ClientDeathTracker is not initialized."
+                );
+
                 return;
             }
 
             if (!RoundClientManager.IsRoundActive)
             {
-                _deathReported = false;
-
-                return;
-            }
-
-            bool isDead =
-                self.cState.dead;
-
-            if (!isDead)
-            {
-                if (_deathReported)
-                {
-                    Modding.Logger.Log(
-                        "[OneShotPvP] Player is alive again. " +
-                        "Resetting death state."
-                    );
-                }
-
-                _deathReported = false;
+                Modding.Logger.Log(
+                    "[OneShotPvP] ReportPvpDeath ignored: " +
+                    "round is not active. " +
+                    "KillerId=" +
+                    killerId
+                );
 
                 return;
             }
 
             if (_deathReported)
             {
-                return;
-            }
-
-            Modding.Logger.Log(
-                "[OneShotPvP] Hero death detected."
-            );
-
-            OnPlayerDeath();
-        }
-
-        private static void OnPlayerDeath()
-        {
-            ushort killerId;
-
-            if (!LastAttackerTracker.TryGetLastAttacker(
-                out killerId))
-            {
                 Modding.Logger.Log(
-                    "[OneShotPvP] DeathReport is waiting: " +
-                    "last attacker was not found yet."
+                    "[OneShotPvP] ReportPvpDeath ignored: " +
+                    "death was already reported. " +
+                    "KillerId=" +
+                    killerId
                 );
 
                 return;
             }
 
-            Modding.Logger.Log(
-                "[OneShotPvP] Killer detected. " +
-                "KillerId=" +
-                killerId
-            );
-
             if (_network == null)
             {
                 Modding.Logger.Log(
-                    "[OneShotPvP] DeathReport is waiting: " +
+                    "[OneShotPvP] ReportPvpDeath failed: " +
                     "network is null."
                 );
 
                 return;
             }
 
-            _network.SendDeathReport(
+            _deathReported = true;
+
+            Modding.Logger.Log(
+                "[OneShotPvP] PvP death confirmed. " +
+                "KillerId=" +
                 killerId
             );
 
-            _deathReported = true;
+            _network.SendDeathReport(
+                killerId
+            );
 
             Modding.Logger.Log(
                 "[OneShotPvP] DeathReport sent. " +
                 "KillerId=" +
                 killerId
             );
-
-            LastAttackerTracker.Clear();
         }
 
         public static void Reset()

@@ -54,6 +54,10 @@ namespace OneShotPvP.Client
 
             On.HeroController.Update +=
                 OnHeroUpdate;
+
+            Modding.Logger.Log(
+                "[OneShotPvP] Client addon initialization completed."
+            );
         }
 
         private void OnHeroUpdate(
