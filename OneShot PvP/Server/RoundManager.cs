@@ -96,6 +96,16 @@ namespace OneShotPvP.Server
                 return false;
             }
 
+<<<<<<<<< Temporary merge branch 1
+            _alivePlayers.Clear();
+=========
+            // Полностью очищаем состояние предыдущего раунда.
+            _alivePlayers.Clear();
+=========
+            // Полностью очищаем состояние предыдущего раунда.
+            _alivePlayers.Clear();
+=========
+            // Полностью очищаем состояние предыдущего раунда.
             _alivePlayers.Clear();
             _manaManager.Clear();
 
@@ -321,12 +331,23 @@ namespace OneShotPvP.Server
         }
 
         private void CheckRoundEnd()
-        {
-            if (!_roundActive)
+<<<<<<<<< Temporary merge branch 1
+=========
+            // Раунд заканчивается ТОЛЬКО когда
+            // остался ровно один живой игрок.
+>>>>>>>>> Temporary merge branch 2
             {
-                return;
-            }
+<<<<<<<<< Temporary merge branch 1
+=========
+            // Раунд заканчивается ТОЛЬКО когда
+            // остался ровно один живой игрок.
+>>>>>>>>> Temporary merge branch 2
 
+<<<<<<<<< Temporary merge branch 1
+=========
+            // Раунд заканчивается ТОЛЬКО когда
+            // остался ровно один живой игрок.
+>>>>>>>>> Temporary merge branch 2
             if (_alivePlayers.Count != 1)
             {
                 return;
