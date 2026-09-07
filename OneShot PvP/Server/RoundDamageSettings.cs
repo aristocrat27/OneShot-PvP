@@ -19,6 +19,7 @@ namespace OneShotPvP.Server
 
         private byte _originalVengefulSpiritDamage;
         private byte _originalShadeSoulDamage;
+
         private byte _originalDesolateDiveDamage;
         private byte _originalDescendingDarkDamage;
 
@@ -48,10 +49,10 @@ namespace OneShotPvP.Server
 
             try
             {
-                IServerSettings currentSettings =
+                IServerSettings interfaceSettings =
                     _serverApi.ServerManager.ServerSettings;
 
-                if (currentSettings == null)
+                if (interfaceSettings == null)
                 {
                     Modding.Logger.Log(
                         "[OneShotPvP] Cannot apply round damage settings: " +
@@ -61,130 +62,128 @@ namespace OneShotPvP.Server
                     return false;
                 }
 
+                ServerSettings settings =
+                    interfaceSettings as ServerSettings;
+
+                if (settings == null)
+                {
+                    Modding.Logger.Log(
+                        "[OneShotPvP] Cannot apply round damage settings: " +
+                        "ServerSettings is not the HKMP ServerSettings type."
+                    );
+
+                    return false;
+                }
+
+                // ==========================================
+                // СОХРАНЯЕМ ТЕКУЩИЕ НАСТРОЙКИ ХОСТА
+                // ==========================================
+
                 _originalNailDamage =
-                    currentSettings.NailDamage;
+                    settings.NailDamage;
 
                 _originalGreatSlashDamage =
-                    currentSettings.GreatSlashDamage;
+                    settings.GreatSlashDamage;
 
                 _originalDashSlashDamage =
-                    currentSettings.DashSlashDamage;
+                    settings.DashSlashDamage;
 
                 _originalCycloneSlashDamage =
-                    currentSettings.CycloneSlashDamage;
+                    settings.CycloneSlashDamage;
 
                 _originalVengefulSpiritDamage =
-                    currentSettings.VengefulSpiritDamage;
+                    settings.VengefulSpiritDamage;
 
                 _originalShadeSoulDamage =
-                    currentSettings.ShadeSoulDamage;
+                    settings.ShadeSoulDamage;
 
                 _originalDesolateDiveDamage =
-                    currentSettings.DesolateDiveDamage;
+                    settings.DesolateDiveDamage;
 
                 _originalDescendingDarkDamage =
-                    currentSettings.DescendingDarkDamage;
+                    settings.DescendingDarkDamage;
 
                 _originalHowlingWraithDamage =
-                    currentSettings.HowlingWraithDamage;
+                    settings.HowlingWraithDamage;
 
                 _originalAbyssShriekDamage =
-                    currentSettings.AbyssShriekDamage;
+                    settings.AbyssShriekDamage;
 
                 _originalGrubberflyElegyDamage =
-                    currentSettings.GrubberflyElegyDamage;
+                    settings.GrubberflyElegyDamage;
 
                 _originalSporeShroomDamage =
-                    currentSettings.SporeShroomDamage;
+                    settings.SporeShroomDamage;
 
                 _originalSporeDungShroomDamage =
-                    currentSettings.SporeDungShroomDamage;
+                    settings.SporeDungShroomDamage;
 
                 _originalThornOfAgonyDamage =
-                    currentSettings.ThornOfAgonyDamage;
+                    settings.ThornOfAgonyDamage;
 
                 _originalSharpShadowDamage =
-                    currentSettings.SharpShadowDamage;
-
-                ServerSettings newSettings =
-                    CreateCopy(currentSettings);
+                    settings.SharpShadowDamage;
 
                 // ==========================================
-                // ЗАПРЕЩЁННЫЕ ИСТОЧНИКИ
+                // НАСТРОЙКИ ONE SHOT PVP
+                //
+                // Это прямое изменение существующего
+                // ServerSettings, как делает HKMP /set.
                 // ==========================================
 
-                // Обычный Nail.
-                newSettings.NailDamage = 0;
+                settings.NailDamage = 0;
 
-                // Cyclone Slash.
-                newSettings.CycloneSlashDamage = 0;
+                settings.GreatSlashDamage = 2;
 
-                // Thorns of Agony.
-                newSettings.ThornOfAgonyDamage = 0;
+                settings.DashSlashDamage = 2;
 
-                // Sharp Shadow.
-                newSettings.SharpShadowDamage = 0;
+                settings.CycloneSlashDamage = 0;
 
-                // Spore Shroom.
-                newSettings.SporeShroomDamage = 0;
+                settings.VengefulSpiritDamage = 1;
 
-                // Spore-Dung Shroom.
-                newSettings.SporeDungShroomDamage = 0;
+                settings.ShadeSoulDamage = 2;
+
+                settings.DesolateDiveDamage = 1;
+
+                settings.DescendingDarkDamage = 2;
+
+                settings.HowlingWraithDamage = 1;
+
+                settings.AbyssShriekDamage = 2;
+
+                settings.GrubberflyElegyDamage = 1;
+
+                settings.SporeShroomDamage = 0;
+
+                settings.SporeDungShroomDamage = 0;
+
+                settings.ThornOfAgonyDamage = 0;
+
+                settings.SharpShadowDamage = 0;
 
                 // ==========================================
-                // РАЗРЕШЁННЫЕ ИСТОЧНИКИ
+                // УВЕДОМЛЯЕМ HKMP ОБ ИЗМЕНЕНИИ НАСТРОЕК
+                //
+                // Это тот же метод, который вызывает
+                // штатная команда /set после изменения
+                // ServerSettings.
                 // ==========================================
 
-                // Great Slash.
-                newSettings.GreatSlashDamage = 2;
+                if (!NotifyServerSettingsUpdated())
+                {
+                    Modding.Logger.Log(
+                        "[OneShotPvP] Failed to notify HKMP " +
+                        "about changed ServerSettings."
+                    );
 
-                // Dash Slash.
-                newSettings.DashSlashDamage = 2;
-
-                // Vengeful Spirit.
-                newSettings.VengefulSpiritDamage = 1;
-
-                // Shade Soul.
-                newSettings.ShadeSoulDamage = 2;
-
-                // Desolate Dive.
-                newSettings.DesolateDiveDamage = 1;
-
-                // Descending Dark.
-                newSettings.DescendingDarkDamage = 2;
-
-                // Howling Wraiths.
-                newSettings.HowlingWraithDamage = 1;
-
-                // Abyss Shriek.
-                newSettings.AbyssShriekDamage = 2;
-
-                // Grubberfly's Elegy.
-                newSettings.GrubberflyElegyDamage = 1;
-
-                _serverApi.ServerManager.ApplyServerSettings(
-                    newSettings
-                );
+                    return false;
+                }
 
                 _saved = true;
 
                 Modding.Logger.Log(
-                    "[OneShotPvP] Round PvP damage settings applied. " +
-                    "Nail=0, " +
-                    "GreatSlash=2, " +
-                    "DashSlash=2, " +
-                    "Cyclone=0, " +
-                    "VS=1, " +
-                    "ShadeSoul=2, " +
-                    "Dive=1, " +
-                    "Dark=2, " +
-                    "Wraith=1, " +
-                    "Shriek=2, " +
-                    "Elegy=1, " +
-                    "Spore=0, " +
-                    "DungSpore=0, " +
-                    "Thorns=0, " +
-                    "SharpShadow=0."
+                    "[OneShotPvP] OneShotPvP damage settings applied " +
+                    "directly to HKMP ServerSettings."
                 );
 
                 return true;
@@ -209,10 +208,10 @@ namespace OneShotPvP.Server
 
             try
             {
-                IServerSettings currentSettings =
+                IServerSettings interfaceSettings =
                     _serverApi.ServerManager.ServerSettings;
 
-                if (currentSettings == null)
+                if (interfaceSettings == null)
                 {
                     Modding.Logger.Log(
                         "[OneShotPvP] Cannot restore damage settings: " +
@@ -224,62 +223,78 @@ namespace OneShotPvP.Server
                     return;
                 }
 
-                ServerSettings newSettings =
-                    CreateCopy(currentSettings);
+                ServerSettings settings =
+                    interfaceSettings as ServerSettings;
 
-                newSettings.NailDamage =
+                if (settings == null)
+                {
+                    Modding.Logger.Log(
+                        "[OneShotPvP] Cannot restore damage settings: " +
+                        "ServerSettings is not the HKMP ServerSettings type."
+                    );
+
+                    _saved = false;
+
+                    return;
+                }
+
+                // ==========================================
+                // ВОЗВРАЩАЕМ ИМЕННО ТЕ ЗНАЧЕНИЯ,
+                // КОТОРЫЕ БЫЛИ ДО НАЧАЛА РАУНДА
+                // ==========================================
+
+                settings.NailDamage =
                     _originalNailDamage;
 
-                newSettings.GreatSlashDamage =
+                settings.GreatSlashDamage =
                     _originalGreatSlashDamage;
 
-                newSettings.DashSlashDamage =
+                settings.DashSlashDamage =
                     _originalDashSlashDamage;
 
-                newSettings.CycloneSlashDamage =
+                settings.CycloneSlashDamage =
                     _originalCycloneSlashDamage;
 
-                newSettings.VengefulSpiritDamage =
+                settings.VengefulSpiritDamage =
                     _originalVengefulSpiritDamage;
 
-                newSettings.ShadeSoulDamage =
+                settings.ShadeSoulDamage =
                     _originalShadeSoulDamage;
 
-                newSettings.DesolateDiveDamage =
+                settings.DesolateDiveDamage =
                     _originalDesolateDiveDamage;
 
-                newSettings.DescendingDarkDamage =
+                settings.DescendingDarkDamage =
                     _originalDescendingDarkDamage;
 
-                newSettings.HowlingWraithDamage =
+                settings.HowlingWraithDamage =
                     _originalHowlingWraithDamage;
 
-                newSettings.AbyssShriekDamage =
+                settings.AbyssShriekDamage =
                     _originalAbyssShriekDamage;
 
-                newSettings.GrubberflyElegyDamage =
+                settings.GrubberflyElegyDamage =
                     _originalGrubberflyElegyDamage;
 
-                newSettings.SporeShroomDamage =
+                settings.SporeShroomDamage =
                     _originalSporeShroomDamage;
 
-                newSettings.SporeDungShroomDamage =
+                settings.SporeDungShroomDamage =
                     _originalSporeDungShroomDamage;
 
-                newSettings.ThornOfAgonyDamage =
+                settings.ThornOfAgonyDamage =
                     _originalThornOfAgonyDamage;
 
-                newSettings.SharpShadowDamage =
+                settings.SharpShadowDamage =
                     _originalSharpShadowDamage;
 
-                _serverApi.ServerManager.ApplyServerSettings(
-                    newSettings
-                );
+                // Передаём восстановленные настройки HKMP.
+                NotifyServerSettingsUpdated();
 
                 _saved = false;
 
                 Modding.Logger.Log(
-                    "[OneShotPvP] Original PvP damage settings restored."
+                    "[OneShotPvP] Original HKMP PvP damage settings restored."
                 );
             }
             catch (Exception exception)
@@ -291,52 +306,51 @@ namespace OneShotPvP.Server
             }
         }
 
-        private static ServerSettings CreateCopy(
-            IServerSettings source)
+        private bool NotifyServerSettingsUpdated()
         {
-            ServerSettings copy =
-                new ServerSettings();
-
-            PropertyInfo[] properties =
-                typeof(ServerSettings).GetProperties(
-                    BindingFlags.Instance |
-                    BindingFlags.Public
-                );
-
-            foreach (PropertyInfo property
-                in properties)
+            if (_serverApi == null ||
+                _serverApi.ServerManager == null)
             {
-                if (!property.CanRead ||
-                    !property.CanWrite)
-                {
-                    continue;
-                }
-
-                PropertyInfo sourceProperty =
-                    typeof(IServerSettings).GetProperty(
-                        property.Name
-                    );
-
-                if (sourceProperty == null ||
-                    !sourceProperty.CanRead)
-                {
-                    continue;
-                }
-
-                object value =
-                    sourceProperty.GetValue(
-                        source,
-                        null
-                    );
-
-                property.SetValue(
-                    copy,
-                    value,
-                    null
-                );
+                return false;
             }
 
-            return copy;
+            try
+            {
+                MethodInfo updateMethod =
+                    _serverApi.ServerManager.GetType().GetMethod(
+                        "OnUpdateServerSettings",
+                        BindingFlags.Instance |
+                        BindingFlags.Public |
+                        BindingFlags.NonPublic
+                    );
+
+                if (updateMethod == null)
+                {
+                    Modding.Logger.Log(
+                        "[OneShotPvP] HKMP OnUpdateServerSettings " +
+                        "method was not found."
+                    );
+
+                    return false;
+                }
+
+                updateMethod.Invoke(
+                    _serverApi.ServerManager,
+                    null
+                );
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] Failed to call HKMP " +
+                    "OnUpdateServerSettings: " +
+                    exception
+                );
+
+                return false;
+            }
         }
     }
 }

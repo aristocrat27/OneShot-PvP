@@ -71,8 +71,6 @@ namespace OneShotPvP.Client
                 return;
             }
 
-            _deathReported = true;
-
             Modding.Logger.Log(
                 "[OneShotPvP] Hero death detected."
             );
@@ -88,8 +86,8 @@ namespace OneShotPvP.Client
                 out killerId))
             {
                 Modding.Logger.Log(
-                    "[OneShotPvP] DeathReport was not sent: " +
-                    "last attacker was not found."
+                    "[OneShotPvP] DeathReport is waiting: " +
+                    "last attacker was not found yet."
                 );
 
                 return;
@@ -104,7 +102,7 @@ namespace OneShotPvP.Client
             if (_network == null)
             {
                 Modding.Logger.Log(
-                    "[OneShotPvP] DeathReport was not sent: " +
+                    "[OneShotPvP] DeathReport is waiting: " +
                     "network is null."
                 );
 
@@ -114,6 +112,8 @@ namespace OneShotPvP.Client
             _network.SendDeathReport(
                 killerId
             );
+
+            _deathReported = true;
 
             Modding.Logger.Log(
                 "[OneShotPvP] DeathReport sent. " +
