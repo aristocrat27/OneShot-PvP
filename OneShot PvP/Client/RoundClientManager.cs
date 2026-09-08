@@ -6,6 +6,8 @@ namespace OneShotPvP.Client
     {
         private static bool _roundActive;
 
+        private static uint _currentRoundId;
+
         private static readonly HashSet<ushort> _deadPlayers =
             new HashSet<ushort>();
 
@@ -17,23 +19,45 @@ namespace OneShotPvP.Client
             }
         }
 
-        public static void StartRound()
+        public static uint CurrentRoundId
+        {
+            get
+            {
+                return _currentRoundId;
+            }
+        }
+
+        public static void StartRound(
+            uint roundId)
         {
             _roundActive = true;
+
+            _currentRoundId =
+                roundId;
+
             _deadPlayers.Clear();
 
+            /*
+             * Каждый новый раунд должен начинаться
+             * с возможностью отправить новый DeathReport.
+             */
             ClientDeathTracker.Reset();
+
+            LastAttackerTracker.Clear();
 
             SetOneHealth();
 
             ClientManaManager.StartRound();
 
             Modding.Logger.Log(
-                "[OneShotPvP] Client round started."
+                "[OneShotPvP] Client round started. " +
+                "RoundId=" +
+                roundId
             );
         }
 
         public static void EndRound(
+            uint roundId,
             ushort winnerId)
         {
             if (!_roundActive)
@@ -41,7 +65,25 @@ namespace OneShotPvP.Client
                 Modding.Logger.Log(
                     "[OneShotPvP] RoundEnd received while " +
                     "client round was already inactive. " +
-                    "WinnerId=" +
+                    "RoundId=" +
+                    roundId +
+                    " WinnerId=" +
+                    winnerId
+                );
+
+                return;
+            }
+
+            if (roundId != _currentRoundId)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] RoundEnd ignored: " +
+                    "packet belongs to another round. " +
+                    "PacketRoundId=" +
+                    roundId +
+                    " CurrentRoundId=" +
+                    _currentRoundId +
+                    " WinnerId=" +
                     winnerId
                 );
 
@@ -51,13 +93,23 @@ namespace OneShotPvP.Client
             _roundActive = false;
 
             _deadPlayers.Clear();
+
+            /*
+             * Сбрасываем состояние отправки смерти,
+             * чтобы следующий раунд не унаследовал
+             * старый флаг.
+             */
+            ClientDeathTracker.Clear();
+
             LastAttackerTracker.Clear();
 
             ClientManaManager.Clear();
 
             Modding.Logger.Log(
                 "[OneShotPvP] Client round ended. " +
-                "WinnerId=" +
+                "RoundId=" +
+                roundId +
+                " WinnerId=" +
                 winnerId
             );
         }
@@ -71,15 +123,59 @@ namespace OneShotPvP.Client
         }
 
         public static void MarkPlayerDead(
+            uint roundId,
             ushort playerId)
         {
-            _deadPlayers.Add(
-                playerId
-            );
+            if (!_roundActive)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] PlayerDeath ignored: " +
+                    "client round is not active. " +
+                    "RoundId=" +
+                    roundId +
+                    " PlayerId=" +
+                    playerId
+                );
+
+                return;
+            }
+
+            if (roundId != _currentRoundId)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] PlayerDeath ignored: " +
+                    "packet belongs to another round. " +
+                    "PacketRoundId=" +
+                    roundId +
+                    " CurrentRoundId=" +
+                    _currentRoundId +
+                    " PlayerId=" +
+                    playerId
+                );
+
+                return;
+            }
+
+            if (!_deadPlayers.Add(
+                playerId))
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] PlayerDeath ignored: " +
+                    "player is already marked dead. " +
+                    "RoundId=" +
+                    roundId +
+                    " PlayerId=" +
+                    playerId
+                );
+
+                return;
+            }
 
             Modding.Logger.Log(
                 "[OneShotPvP] Player marked dead on client. " +
-                "PlayerId=" +
+                "RoundId=" +
+                roundId +
+                " PlayerId=" +
                 playerId
             );
         }
@@ -96,14 +192,23 @@ namespace OneShotPvP.Client
                 return;
             }
 
-            PlayerData.instance.health = 1;
-            PlayerData.instance.healthBlue = 0;
-            PlayerData.instance.joniHealthBlue = 0;
-            PlayerData.instance.damagedBlue = false;
+            PlayerData.instance.health =
+                1;
+
+            PlayerData.instance.healthBlue =
+                0;
+
+            PlayerData.instance.joniHealthBlue =
+                0;
+
+            PlayerData.instance.damagedBlue =
+                false;
 
             if (HeroController.instance != null)
             {
-                HeroController.instance.TakeHealth(0);
+                HeroController.instance.TakeHealth(
+                    0
+                );
             }
 
             Modding.Logger.Log(
@@ -117,6 +222,13 @@ namespace OneShotPvP.Client
             _roundActive = false;
 
             _deadPlayers.Clear();
+
+            /*
+             * Полностью сбрасываем состояние смерти,
+             * чтобы после повторного подключения/старта
+             * не осталось состояние предыдущего раунда.
+             */
+            ClientDeathTracker.Clear();
 
             LastAttackerTracker.Clear();
 

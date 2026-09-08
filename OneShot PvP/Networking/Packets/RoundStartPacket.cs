@@ -2,11 +2,9 @@
 
 namespace OneShotPvP.Networking.Packets
 {
-    internal sealed class DeathReportPacket : IPacketData
+    internal sealed class RoundStartPacket : IPacketData
     {
         public uint RoundId { get; private set; }
-
-        public ushort KillerId { get; private set; }
 
         public bool IsReliable
         {
@@ -18,16 +16,14 @@ namespace OneShotPvP.Networking.Packets
             get { return false; }
         }
 
-        public DeathReportPacket()
+        public RoundStartPacket()
         {
         }
 
-        public DeathReportPacket(
-            uint roundId,
-            ushort killerId)
+        public RoundStartPacket(
+            uint roundId)
         {
             RoundId = roundId;
-            KillerId = killerId;
         }
 
         public void WriteData(
@@ -36,10 +32,6 @@ namespace OneShotPvP.Networking.Packets
             packet.Write(
                 RoundId
             );
-
-            packet.Write(
-                KillerId
-            );
         }
 
         public void ReadData(
@@ -47,9 +39,6 @@ namespace OneShotPvP.Networking.Packets
         {
             RoundId =
                 packet.ReadUInt();
-
-            KillerId =
-                packet.ReadUShort();
         }
     }
 }

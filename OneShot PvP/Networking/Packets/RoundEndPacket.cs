@@ -4,6 +4,8 @@ namespace OneShotPvP.Networking.Packets
 {
     internal sealed class RoundEndPacket : IPacketData
     {
+        public uint RoundId { get; private set; }
+
         public ushort WinnerId { get; private set; }
 
         public bool IsReliable
@@ -21,21 +23,33 @@ namespace OneShotPvP.Networking.Packets
         }
 
         public RoundEndPacket(
+            uint roundId,
             ushort winnerId)
         {
+            RoundId = roundId;
             WinnerId = winnerId;
         }
 
         public void WriteData(
             IPacket packet)
         {
-            packet.Write(WinnerId);
+            packet.Write(
+                RoundId
+            );
+
+            packet.Write(
+                WinnerId
+            );
         }
 
         public void ReadData(
             IPacket packet)
         {
-            WinnerId = packet.ReadUShort();
+            RoundId =
+                packet.ReadUInt();
+
+            WinnerId =
+                packet.ReadUShort();
         }
     }
 }

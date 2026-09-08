@@ -15,6 +15,23 @@ namespace OneShotPvP.Client
 
         private static ushort? _lastAttackerId;
 
+        /*
+         * Время последней HKMP-атаки.
+         *
+         * Используется как fallback для атак, у которых
+         * существующий DamageHero переиспользуется и новый
+         * DamageHero не появляется.
+         */
+        private static float _lastAttackTime =
+            -Mathf.Infinity;
+
+        /*
+         * Максимальное время, в течение которого
+         * последний атакующий считается актуальным.
+         */
+        private const float LastAttackFallbackWindow =
+            2.0f;
+
         private static readonly Dictionary<int, ushort>
             _attackOwners =
                 new Dictionary<int, ushort>();
@@ -67,6 +84,10 @@ namespace OneShotPvP.Client
             _initialized = true;
 
             _lastAttackerId = null;
+
+            _lastAttackTime =
+                -Mathf.Infinity;
+
             _attackOwners.Clear();
 
             On.HeroController.TakeDamage +=
@@ -335,6 +356,39 @@ namespace OneShotPvP.Client
                 );
             }
 
+            /*
+             * ВАЖНО:
+             *
+             * Некоторые HKMP-атаки используют уже существующий
+             * DamageHero и поэтому после Play не появляется
+             * новый объект.
+             *
+             * В этом случае RegisterNewDamageHeroes() не сможет
+             * сопоставить источник урона с атакующим.
+             *
+             * Поэтому при успешном определении playerObject
+             * сразу запоминаем атакующего.
+             */
+            if (
+                attackerResolved &&
+                RoundClientManager.IsRoundActive
+            )
+            {
+                _lastAttackerId =
+                    attackerId;
+
+                _lastAttackTime =
+                    Time.time;
+
+                Modding.Logger.Log(
+                    "[OneShotPvP] Recent attacker updated. " +
+                    "AttackerId=" +
+                    attackerId +
+                    " Effect=" +
+                    typeof(TSelf).FullName
+                );
+            }
+
             origDynamic(
                 orig,
                 self,
@@ -431,6 +485,11 @@ namespace OneShotPvP.Client
             ushort attackerId,
             string attackType)
         {
+            if (!RoundClientManager.IsRoundActive)
+            {
+                return;
+            }
+
             DamageHero[] damageHeroes =
                 UnityEngine.Object.FindObjectsOfType<DamageHero>();
 
@@ -522,6 +581,13 @@ namespace OneShotPvP.Client
                     out attackerId
                 );
 
+            bool usedRecentAttackerFallback =
+                false;
+
+            /*
+             * Сначала используем точное сопоставление
+             * конкретного DamageHero с атакующим.
+             */
             if (attackerFound)
             {
                 _lastAttackerId =
@@ -538,6 +604,40 @@ namespace OneShotPvP.Client
                     " HazardType=" +
                     hazardType
                 );
+            }
+            else
+            {
+                /*
+                 * Если конкретный DamageHero не зарегистрирован,
+                 * проверяем, относится ли источник к DamageHero.
+                 *
+                 * Только тогда разрешаем fallback по последней
+                 * HKMP-атаке.
+                 */
+                if (
+                    RoundClientManager.IsRoundActive &&
+                    HasDamageHeroInHierarchy(go) &&
+                    TryGetRecentAttacker(
+                        out attackerId
+                    )
+                )
+                {
+                    attackerFound = true;
+
+                    usedRecentAttackerFallback =
+                        true;
+
+                    Modding.Logger.Log(
+                        "[OneShotPvP] Attack source unresolved. " +
+                        "Using recent HKMP attacker fallback. " +
+                        "AttackerId=" +
+                        attackerId +
+                        " Source=" +
+                        GetObjectName(go) +
+                        " Age=" +
+                        (Time.time - _lastAttackTime)
+                    );
+                }
             }
 
             orig(
@@ -583,7 +683,7 @@ namespace OneShotPvP.Client
                     "health"
                 );
 
-            if (health != 0)
+            if (health > 0)
             {
                 return;
             }
@@ -593,7 +693,9 @@ namespace OneShotPvP.Client
                 "KillerId=" +
                 attackerId +
                 " Source=" +
-                GetObjectName(go)
+                GetObjectName(go) +
+                " UsedRecentFallback=" +
+                usedRecentAttackerFallback
             );
 
             ClientDeathTracker.ReportPvpDeath(
@@ -644,6 +746,75 @@ namespace OneShotPvP.Client
             }
 
             return false;
+        }
+
+        private static bool HasDamageHeroInHierarchy(
+            GameObject source)
+        {
+            if (source == null)
+            {
+                return false;
+            }
+
+            Transform current =
+                source.transform;
+
+            while (current != null)
+            {
+                DamageHero damageHero =
+                    current.GetComponent<DamageHero>();
+
+                if (damageHero != null)
+                {
+                    return true;
+                }
+
+                current =
+                    current.parent;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetRecentAttacker(
+            out ushort playerId)
+        {
+            playerId = 0;
+
+            if (!_lastAttackerId.HasValue)
+            {
+                return false;
+            }
+
+            if (!RoundClientManager.IsRoundActive)
+            {
+                return false;
+            }
+
+            if (float.IsNegativeInfinity(
+                _lastAttackTime))
+            {
+                return false;
+            }
+
+            float age =
+                Time.time -
+                _lastAttackTime;
+
+            if (age < 0f)
+            {
+                return false;
+            }
+
+            if (age > LastAttackFallbackWindow)
+            {
+                return false;
+            }
+
+            playerId =
+                _lastAttackerId.Value;
+
+            return true;
         }
 
         private static bool TryGetPlayerIdFromObject(
@@ -748,6 +919,9 @@ namespace OneShotPvP.Client
         public static void Clear()
         {
             _lastAttackerId = null;
+
+            _lastAttackTime =
+                -Mathf.Infinity;
 
             _attackOwners.Clear();
 

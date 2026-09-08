@@ -4,6 +4,8 @@ namespace OneShotPvP.Networking.Packets
 {
     internal sealed class PlayerDeathPacket : IPacketData
     {
+        public uint RoundId { get; private set; }
+
         public ushort PlayerId { get; private set; }
 
         public bool IsReliable
@@ -21,14 +23,20 @@ namespace OneShotPvP.Networking.Packets
         }
 
         public PlayerDeathPacket(
+            uint roundId,
             ushort playerId)
         {
+            RoundId = roundId;
             PlayerId = playerId;
         }
 
         public void WriteData(
             IPacket packet)
         {
+            packet.Write(
+                RoundId
+            );
+
             packet.Write(
                 PlayerId
             );
@@ -37,6 +45,9 @@ namespace OneShotPvP.Networking.Packets
         public void ReadData(
             IPacket packet)
         {
+            RoundId =
+                packet.ReadUInt();
+
             PlayerId =
                 packet.ReadUShort();
         }

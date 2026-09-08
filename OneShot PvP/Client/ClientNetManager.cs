@@ -35,7 +35,7 @@ namespace OneShotPvP.Client
                 OnManaUpdate
             );
 
-            netReceiver.RegisterPacketHandler(
+            netReceiver.RegisterPacketHandler<RoundStartPacket>(
                 OneShotClientPacketId.RoundStart,
                 OnRoundStart
             );
@@ -64,7 +64,7 @@ namespace OneShotPvP.Client
                     return new ManaUpdatePacket();
 
                 case OneShotClientPacketId.RoundStart:
-                    return new ReliableEmptyData();
+                    return new RoundStartPacket();
 
                 case OneShotClientPacketId.PlayerDeath:
                     return new PlayerDeathPacket();
@@ -90,13 +90,18 @@ namespace OneShotPvP.Client
             );
         }
 
-        private void OnRoundStart()
+        private void OnRoundStart(
+            RoundStartPacket packet)
         {
             Modding.Logger.Log(
-                "[OneShotPvP] Client received RoundStart."
+                "[OneShotPvP] Client received RoundStart. " +
+                "RoundId=" +
+                packet.RoundId
             );
 
-            RoundClientManager.StartRound();
+            RoundClientManager.StartRound(
+                packet.RoundId
+            );
         }
 
         private void OnPlayerDeath(
@@ -104,11 +109,14 @@ namespace OneShotPvP.Client
         {
             Modding.Logger.Log(
                 "[OneShotPvP] Client received PlayerDeath. " +
-                "PlayerId=" +
+                "RoundId=" +
+                packet.RoundId +
+                " PlayerId=" +
                 packet.PlayerId
             );
 
             RoundClientManager.MarkPlayerDead(
+                packet.RoundId,
                 packet.PlayerId
             );
         }
@@ -118,11 +126,14 @@ namespace OneShotPvP.Client
         {
             Modding.Logger.Log(
                 "[OneShotPvP] Client received RoundEnd. " +
-                "WinnerId=" +
+                "RoundId=" +
+                packet.RoundId +
+                " WinnerId=" +
                 packet.WinnerId
             );
 
             RoundClientManager.EndRound(
+                packet.RoundId,
                 packet.WinnerId
             );
         }
@@ -142,21 +153,29 @@ namespace OneShotPvP.Client
         public void SendDeathReport(
             ushort killerId)
         {
+            uint roundId =
+                RoundClientManager.CurrentRoundId;
+
             Modding.Logger.Log(
                 "[OneShotPvP] SendDeathReport called. " +
-                "KillerId=" +
+                "RoundId=" +
+                roundId +
+                " KillerId=" +
                 killerId
             );
 
             _netSender.SendSingleData(
                 OneShotServerPacketId.DeathReport,
                 new DeathReportPacket(
+                    roundId,
                     killerId
                 )
             );
 
             Modding.Logger.Log(
-                "[OneShotPvP] DeathReport packet submitted to HKMP."
+                "[OneShotPvP] DeathReport packet submitted to HKMP. " +
+                "RoundId=" +
+                roundId
             );
         }
 

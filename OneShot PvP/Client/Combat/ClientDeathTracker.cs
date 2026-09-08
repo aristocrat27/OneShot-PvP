@@ -6,7 +6,6 @@ namespace OneShotPvP.Client
     {
         private static bool _initialized;
         private static bool _deathReported;
-
         private static ClientNetManager _network;
 
         public static void Initialize(
@@ -14,12 +13,12 @@ namespace OneShotPvP.Client
         {
             if (_initialized)
             {
+                _network = network;
                 return;
             }
 
             _initialized = true;
             _deathReported = false;
-
             _network = network;
 
             Modding.Logger.Log(

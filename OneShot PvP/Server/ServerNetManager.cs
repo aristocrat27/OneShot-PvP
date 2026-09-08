@@ -88,9 +88,13 @@ namespace OneShotPvP.Server
                 playerId
             );
 
-            _manaManager.ResetPlayer(playerId);
+            _manaManager.ResetPlayer(
+                playerId
+            );
 
-            SendMana(playerId);
+            SendMana(
+                playerId
+            );
         }
 
         private void OnManaSpent(
@@ -118,7 +122,9 @@ namespace OneShotPvP.Server
                 " Spent=" +
                 spent +
                 " CurrentMana=" +
-                _manaManager.GetMana(playerId)
+                _manaManager.GetMana(
+                    playerId
+                )
             );
 
             if (spent <= 0)
@@ -126,19 +132,28 @@ namespace OneShotPvP.Server
                 return;
             }
 
-            SendMana(playerId);
+            SendMana(
+                playerId
+            );
         }
 
         private void OnDeathReport(
             ushort playerId,
             DeathReportPacket packet)
         {
-            ushort victimId = playerId;
-            ushort killerId = packet.KillerId;
+            ushort victimId =
+                playerId;
+
+            ushort killerId =
+                packet.KillerId;
 
             Modding.Logger.Log(
                 "[OneShotPvP] Server received DeathReport. " +
-                "VictimId=" +
+                "RoundId=" +
+                packet.RoundId +
+                " CurrentRoundId=" +
+                _roundManager.CurrentRoundId +
+                " VictimId=" +
                 victimId +
                 " KillerId=" +
                 killerId
@@ -154,7 +169,23 @@ namespace OneShotPvP.Server
                 return;
             }
 
-            if (!_roundManager.IsAlive(victimId))
+            if (packet.RoundId !=
+                _roundManager.CurrentRoundId)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] DeathReport rejected: " +
+                    "packet belongs to another round. " +
+                    "PacketRoundId=" +
+                    packet.RoundId +
+                    " CurrentRoundId=" +
+                    _roundManager.CurrentRoundId
+                );
+
+                return;
+            }
+
+            if (!_roundManager.IsAlive(
+                victimId))
             {
                 Modding.Logger.Log(
                     "[OneShotPvP] DeathReport rejected: " +
@@ -166,7 +197,8 @@ namespace OneShotPvP.Server
                 return;
             }
 
-            if (!_roundManager.IsAlive(killerId))
+            if (!_roundManager.IsAlive(
+                killerId))
             {
                 Modding.Logger.Log(
                     "[OneShotPvP] DeathReport rejected: " +
@@ -190,12 +222,20 @@ namespace OneShotPvP.Server
 
             Modding.Logger.Log(
                 "[OneShotPvP] Before kill processing: " +
-                "VictimMana=" +
-                _manaManager.GetMana(victimId) +
+                "RoundId=" +
+                _roundManager.CurrentRoundId +
+                " VictimMana=" +
+                _manaManager.GetMana(
+                    victimId
+                ) +
                 " KillerMana=" +
-                _manaManager.GetMana(killerId) +
+                _manaManager.GetMana(
+                    killerId
+                ) +
                 " VictimDead=" +
-                _manaManager.IsDead(victimId)
+                _manaManager.IsDead(
+                    victimId
+                )
             );
 
             int reward;
@@ -227,22 +267,35 @@ namespace OneShotPvP.Server
 
             Modding.Logger.Log(
                 "[OneShotPvP] Kill accepted. " +
-                "KillerId=" +
+                "RoundId=" +
+                _roundManager.CurrentRoundId +
+                " KillerId=" +
                 killerId +
                 " VictimId=" +
                 victimId +
                 " Reward=" +
                 reward +
                 " KillerManaAfter=" +
-                _manaManager.GetMana(killerId) +
+                _manaManager.GetMana(
+                    killerId
+                ) +
                 " VictimManaAfter=" +
-                _manaManager.GetMana(victimId)
+                _manaManager.GetMana(
+                    victimId
+                )
             );
 
-            SendMana(killerId);
-            SendMana(victimId);
+            SendMana(
+                killerId
+            );
 
-            BroadcastPlayerDeath(victimId);
+            SendMana(
+                victimId
+            );
+
+            BroadcastPlayerDeath(
+                victimId
+            );
 
             Modding.Logger.Log(
                 "[OneShotPvP] Calling RoundManager.OnPlayerDeath. " +
@@ -250,7 +303,9 @@ namespace OneShotPvP.Server
                 victimId
             );
 
-            _roundManager.OnPlayerDeath(victimId);
+            _roundManager.OnPlayerDeath(
+                victimId
+            );
 
             Modding.Logger.Log(
                 "[OneShotPvP] RoundManager.OnPlayerDeath returned."
@@ -261,11 +316,15 @@ namespace OneShotPvP.Server
             ushort playerId)
         {
             int mana =
-                _manaManager.GetMana(playerId);
+                _manaManager.GetMana(
+                    playerId
+                );
 
             _netSender.SendSingleData(
                 OneShotClientPacketId.ManaUpdate,
-                new ManaUpdatePacket(mana),
+                new ManaUpdatePacket(
+                    mana
+                ),
                 playerId
             );
         }
@@ -273,21 +332,28 @@ namespace OneShotPvP.Server
         public void SendInitialMana(
             ushort playerId)
         {
-            SendMana(playerId);
+            SendMana(
+                playerId
+            );
         }
 
         public void SendRoundStart(
-            ushort playerId)
+            ushort playerId,
+            uint roundId)
         {
             Modding.Logger.Log(
                 "[OneShotPvP] Sending RoundStart. " +
-                "PlayerId=" +
+                "RoundId=" +
+                roundId +
+                " PlayerId=" +
                 playerId
             );
 
             _netSender.SendSingleData(
                 OneShotClientPacketId.RoundStart,
-                new ReliableEmptyData(),
+                new RoundStartPacket(
+                    roundId
+                ),
                 playerId
             );
         }
@@ -297,28 +363,39 @@ namespace OneShotPvP.Server
         {
             Modding.Logger.Log(
                 "[OneShotPvP] Broadcasting PlayerDeath. " +
-                "PlayerId=" +
+                "RoundId=" +
+                _roundManager.CurrentRoundId +
+                " PlayerId=" +
                 playerId
             );
 
             _netSender.BroadcastSingleData(
                 OneShotClientPacketId.PlayerDeath,
-                new PlayerDeathPacket(playerId)
+                new PlayerDeathPacket(
+                    _roundManager.CurrentRoundId,
+                    playerId
+                )
             );
         }
 
         public void BroadcastRoundEnd(
+            uint roundId,
             ushort winnerId)
         {
             Modding.Logger.Log(
                 "[OneShotPvP] Broadcasting RoundEnd. " +
-                "WinnerId=" +
+                "RoundId=" +
+                roundId +
+                " WinnerId=" +
                 winnerId
             );
 
             _netSender.BroadcastSingleData(
                 OneShotClientPacketId.RoundEnd,
-                new RoundEndPacket(winnerId)
+                new RoundEndPacket(
+                    roundId,
+                    winnerId
+                )
             );
         }
     }

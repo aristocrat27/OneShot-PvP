@@ -18,11 +18,21 @@ namespace OneShotPvP.Server
 
         private bool _roundActive;
 
+        private uint _currentRoundId;
+
         public bool IsRoundActive
         {
             get
             {
                 return _roundActive;
+            }
+        }
+
+        public uint CurrentRoundId
+        {
+            get
+            {
+                return _currentRoundId;
             }
         }
 
@@ -40,7 +50,6 @@ namespace OneShotPvP.Server
         {
             _serverApi = serverApi;
             _manaManager = manaManager;
-
             _damageSettings =
                 new RoundDamageSettings(
                     serverApi
@@ -59,6 +68,25 @@ namespace OneShotPvP.Server
             return _alivePlayers.Contains(
                 playerId
             );
+        }
+
+        private uint StartNewRoundId()
+        {
+            if (_currentRoundId == uint.MaxValue)
+            {
+                _currentRoundId = 1;
+            }
+            else
+            {
+                _currentRoundId++;
+            }
+
+            if (_currentRoundId == 0)
+            {
+                _currentRoundId = 1;
+            }
+
+            return _currentRoundId;
         }
 
         public bool StartRound()
@@ -96,9 +124,11 @@ namespace OneShotPvP.Server
                 return false;
             }
 
-            // Полностью очищаем состояние предыдущего раунда.
             _alivePlayers.Clear();
             _manaManager.Clear();
+
+            uint roundId =
+                StartNewRoundId();
 
             _roundActive = true;
 
@@ -136,7 +166,8 @@ namespace OneShotPvP.Server
                 }
 
                 _network.SendRoundStart(
-                    player.Id
+                    player.Id,
+                    roundId
                 );
             }
 
@@ -146,7 +177,9 @@ namespace OneShotPvP.Server
 
             Modding.Logger.Log(
                 "[OneShotPvP] Round started. " +
-                "Alive players=" +
+                "RoundId=" +
+                roundId +
+                " Alive players=" +
                 _alivePlayers.Count
             );
 
@@ -193,6 +226,9 @@ namespace OneShotPvP.Server
             _alivePlayers.Clear();
             _manaManager.Clear();
 
+            uint roundId =
+                StartNewRoundId();
+
             _roundActive = true;
 
             _alivePlayers.Add(
@@ -226,13 +262,16 @@ namespace OneShotPvP.Server
                 );
 
                 _network.SendRoundStart(
-                    realPlayerId
+                    realPlayerId,
+                    roundId
                 );
             }
 
             Modding.Logger.Log(
                 "[OneShotPvP] Test round started. " +
-                "RealPlayerId=" +
+                "RoundId=" +
+                roundId +
+                " RealPlayerId=" +
                 realPlayerId +
                 " VirtualPlayer1=" +
                 virtualPlayerId1 +
@@ -287,7 +326,9 @@ namespace OneShotPvP.Server
 
             Modding.Logger.Log(
                 "[OneShotPvP] Player eliminated. " +
-                "PlayerId=" +
+                "RoundId=" +
+                _currentRoundId +
+                " PlayerId=" +
                 playerId +
                 " AlivePlayers=" +
                 _alivePlayers.Count
@@ -312,7 +353,9 @@ namespace OneShotPvP.Server
 
             Modding.Logger.Log(
                 "[OneShotPvP] Player disconnected from round. " +
-                "PlayerId=" +
+                "RoundId=" +
+                _currentRoundId +
+                " PlayerId=" +
                 playerId +
                 " AlivePlayers=" +
                 _alivePlayers.Count
@@ -323,8 +366,6 @@ namespace OneShotPvP.Server
 
         private void CheckRoundEnd()
         {
-            // Раунд заканчивается ТОЛЬКО когда
-            // остался ровно один живой игрок.
             if (_alivePlayers.Count != 1)
             {
                 return;
@@ -346,11 +387,16 @@ namespace OneShotPvP.Server
                 return;
             }
 
+            uint roundId =
+                _currentRoundId;
+
             _roundActive = false;
 
             Modding.Logger.Log(
                 "[OneShotPvP] Round ended. " +
-                "WinnerId=" +
+                "RoundId=" +
+                roundId +
+                " WinnerId=" +
                 winnerId
             );
 
@@ -382,6 +428,7 @@ namespace OneShotPvP.Server
             if (_network != null)
             {
                 _network.BroadcastRoundEnd(
+                    roundId,
                     winnerId
                 );
             }
@@ -393,7 +440,9 @@ namespace OneShotPvP.Server
             _alivePlayers.Clear();
 
             Modding.Logger.Log(
-                "[OneShotPvP] Round state cleared."
+                "[OneShotPvP] Round state cleared. " +
+                "RoundId=" +
+                roundId
             );
         }
 
@@ -402,13 +451,14 @@ namespace OneShotPvP.Server
             _roundActive = false;
 
             _alivePlayers.Clear();
-
             _manaManager.Clear();
 
             _damageSettings.Restore();
 
             Modding.Logger.Log(
-                "[OneShotPvP] Round manager reset."
+                "[OneShotPvP] Round manager reset. " +
+                "CurrentRoundId=" +
+                _currentRoundId
             );
         }
     }
