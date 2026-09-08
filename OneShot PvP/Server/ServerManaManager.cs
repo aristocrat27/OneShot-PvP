@@ -68,7 +68,8 @@ namespace OneShotPvP.Server
         public void ResetPlayer(
             ushort playerId)
         {
-            if (!HasPlayer(playerId))
+            if (!HasPlayer(
+                playerId))
             {
                 return;
             }
@@ -83,12 +84,14 @@ namespace OneShotPvP.Server
         {
             reward = 0;
 
-            if (!HasPlayer(victimId))
+            if (!HasPlayer(
+                victimId))
             {
                 return false;
             }
 
-            if (!HasPlayer(killerId))
+            if (!HasPlayer(
+                killerId))
             {
                 return false;
             }
@@ -99,19 +102,23 @@ namespace OneShotPvP.Server
             }
 
             // Выбывший игрок не может убивать.
-            if (_deadPlayers.Contains(killerId))
+            if (_deadPlayers.Contains(
+                killerId))
             {
                 return false;
             }
 
             // Нельзя повторно убить уже погибшего игрока.
-            if (_deadPlayers.Contains(victimId))
+            if (_deadPlayers.Contains(
+                victimId))
             {
                 return false;
             }
 
             int victimMana =
-                GetMana(victimId);
+                GetMana(
+                    victimId
+                );
 
             // Награда:
             // минимум 33 MP,
@@ -131,7 +138,9 @@ namespace OneShotPvP.Server
 
             // Награда добавляется убийце.
             int killerMana =
-                GetMana(killerId);
+                GetMana(
+                    killerId
+                );
 
             _mana[killerId] =
                 killerMana + reward;
@@ -148,20 +157,24 @@ namespace OneShotPvP.Server
                 return 0;
             }
 
-            if (!HasPlayer(playerId))
+            if (!HasPlayer(
+                playerId))
             {
                 return 0;
             }
 
             // Выбывший игрок больше не должен
             // расходовать игровую ману.
-            if (_deadPlayers.Contains(playerId))
+            if (_deadPlayers.Contains(
+                playerId))
             {
                 return 0;
             }
 
             int currentMana =
-                GetMana(playerId);
+                GetMana(
+                    playerId
+                );
 
             int spent =
                 Math.Min(
@@ -173,23 +186,6 @@ namespace OneShotPvP.Server
                 currentMana - spent;
 
             return spent;
-        }
-
-        public void SetMana(
-            ushort playerId,
-            int mana)
-        {
-            if (!HasPlayer(playerId))
-            {
-                return;
-            }
-
-            if (mana < 0)
-            {
-                mana = 0;
-            }
-
-            _mana[playerId] = mana;
         }
 
         public void Clear()

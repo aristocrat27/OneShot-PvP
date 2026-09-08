@@ -20,15 +20,15 @@ namespace OneShotPvP.Client
             _netSender =
                 netClient.GetNetworkSender<
                     OneShotServerPacketId>(
-                    addon
-                );
+                        addon
+                    );
 
             var netReceiver =
                 netClient.GetNetworkReceiver<
                     OneShotClientPacketId>(
-                    addon,
-                    InstantiatePacket
-                );
+                        addon,
+                        InstantiatePacket
+                    );
 
             netReceiver.RegisterPacketHandler<ManaUpdatePacket>(
                 OneShotClientPacketId.ManaUpdate,
@@ -129,12 +129,18 @@ namespace OneShotPvP.Client
                 "RoundId=" +
                 packet.RoundId +
                 " WinnerId=" +
-                packet.WinnerId
+                packet.WinnerId +
+                " IsTeamVictory=" +
+                packet.IsTeamVictory +
+                " WinnerTeam=" +
+                packet.WinnerTeam
             );
 
             RoundClientManager.EndRound(
                 packet.RoundId,
-                packet.WinnerId
+                packet.WinnerId,
+                packet.IsTeamVictory,
+                packet.WinnerTeam
             );
         }
 

@@ -1,5 +1,4 @@
 ﻿using Modding;
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -11,6 +10,11 @@ namespace OneShot_PvP
     public class OneShot_PvP : Mod
     {
         internal static OneShot_PvP Instance;
+
+        public override string GetVersion()
+        {
+            return OneShotConstants.Version;
+        }
 
         public override void Initialize(
             Dictionary<string, Dictionary<string, GameObject>> preloadedObjects)

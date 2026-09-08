@@ -3,6 +3,8 @@ using System.Linq;
 
 using Hkmp.Api.Server;
 
+using OneShotPvP.Server.Stats;
+
 namespace OneShotPvP.Server
 {
     internal sealed class RoundManager
@@ -10,6 +12,7 @@ namespace OneShotPvP.Server
         private readonly IServerApi _serverApi;
         private readonly ServerManaManager _manaManager;
         private readonly RoundDamageSettings _damageSettings;
+        private readonly StatsManager _statsManager;
 
         private ServerNetManager _network;
 
@@ -46,10 +49,13 @@ namespace OneShotPvP.Server
 
         public RoundManager(
             IServerApi serverApi,
-            ServerManaManager manaManager)
+            ServerManaManager manaManager,
+            StatsManager statsManager)
         {
             _serverApi = serverApi;
             _manaManager = manaManager;
+            _statsManager = statsManager;
+
             _damageSettings =
                 new RoundDamageSettings(
                     serverApi
@@ -104,7 +110,8 @@ namespace OneShotPvP.Server
             IReadOnlyCollection<IServerPlayer> players =
                 _serverApi.ServerManager.Players;
 
-            if (players.Count < 2)
+            if (players == null ||
+                players.Count < 2)
             {
                 Modding.Logger.Log(
                     "[OneShotPvP] StartRound rejected: " +
@@ -134,6 +141,11 @@ namespace OneShotPvP.Server
 
             foreach (IServerPlayer player in players)
             {
+                if (player == null)
+                {
+                    continue;
+                }
+
                 ushort playerId =
                     player.Id;
 
@@ -146,9 +158,33 @@ namespace OneShotPvP.Server
                 );
             }
 
+            if (_alivePlayers.Count < 2)
+            {
+                _roundActive = false;
+
+                _alivePlayers.Clear();
+                _manaManager.Clear();
+
+                _damageSettings.Restore();
+
+                Modding.Logger.Log(
+                    "[OneShotPvP] StartRound aborted: " +
+                    "less than 2 valid players remained."
+                );
+
+                return false;
+            }
+
             foreach (IServerPlayer player in players)
             {
-                if (_network == null)
+                if (player == null ||
+                    _network == null)
+                {
+                    continue;
+                }
+
+                if (!_alivePlayers.Contains(
+                    player.Id))
                 {
                     continue;
                 }
@@ -160,7 +196,14 @@ namespace OneShotPvP.Server
 
             foreach (IServerPlayer player in players)
             {
-                if (_network == null)
+                if (player == null ||
+                    _network == null)
+                {
+                    continue;
+                }
+
+                if (!_alivePlayers.Contains(
+                    player.Id))
                 {
                     continue;
                 }
@@ -184,123 +227,6 @@ namespace OneShotPvP.Server
             );
 
             return true;
-        }
-
-        public bool StartTestRound(
-            ushort realPlayerId,
-            ushort virtualPlayerId1,
-            ushort virtualPlayerId2)
-        {
-            if (_roundActive)
-            {
-                Modding.Logger.Log(
-                    "[OneShotPvP] StartTestRound rejected: " +
-                    "round is already active."
-                );
-
-                return false;
-            }
-
-            if (realPlayerId == virtualPlayerId1 ||
-                realPlayerId == virtualPlayerId2 ||
-                virtualPlayerId1 == virtualPlayerId2)
-            {
-                Modding.Logger.Log(
-                    "[OneShotPvP] StartTestRound rejected: " +
-                    "test player IDs are not unique."
-                );
-
-                return false;
-            }
-
-            if (!_damageSettings.ApplyForRound())
-            {
-                Modding.Logger.Log(
-                    "[OneShotPvP] StartTestRound rejected: " +
-                    "failed to apply damage settings."
-                );
-
-                return false;
-            }
-
-            _alivePlayers.Clear();
-            _manaManager.Clear();
-
-            uint roundId =
-                StartNewRoundId();
-
-            _roundActive = true;
-
-            _alivePlayers.Add(
-                realPlayerId
-            );
-
-            _alivePlayers.Add(
-                virtualPlayerId1
-            );
-
-            _alivePlayers.Add(
-                virtualPlayerId2
-            );
-
-            _manaManager.AddPlayer(
-                realPlayerId
-            );
-
-            _manaManager.AddPlayer(
-                virtualPlayerId1
-            );
-
-            _manaManager.AddPlayer(
-                virtualPlayerId2
-            );
-
-            if (_network != null)
-            {
-                _network.SendInitialMana(
-                    realPlayerId
-                );
-
-                _network.SendRoundStart(
-                    realPlayerId,
-                    roundId
-                );
-            }
-
-            Modding.Logger.Log(
-                "[OneShotPvP] Test round started. " +
-                "RoundId=" +
-                roundId +
-                " RealPlayerId=" +
-                realPlayerId +
-                " VirtualPlayer1=" +
-                virtualPlayerId1 +
-                " VirtualPlayer2=" +
-                virtualPlayerId2
-            );
-
-            return true;
-        }
-
-        public bool ApplyTestDamageSettings()
-        {
-            bool applied =
-                _damageSettings.ApplyForRound();
-
-            if (applied)
-            {
-                Modding.Logger.Log(
-                    "[OneShotPvP] Test damage settings applied."
-                );
-            }
-            else
-            {
-                Modding.Logger.Log(
-                    "[OneShotPvP] Failed to apply test damage settings."
-                );
-            }
-
-            return applied;
         }
 
         public void OnPlayerDeath(
@@ -366,20 +292,160 @@ namespace OneShotPvP.Server
 
         private void CheckRoundEnd()
         {
-            if (_alivePlayers.Count != 1)
+            /*
+             * CHECK 1
+             *
+             * Exactly one alive player always wins.
+             */
+            if (_alivePlayers.Count == 1)
+            {
+                ushort winnerId =
+                    _alivePlayers.First();
+
+                Modding.Logger.Log(
+                    "[OneShotPvP] Round end detected: " +
+                    "one alive player remains. " +
+                    "WinnerId=" +
+                    winnerId
+                );
+
+                EndPlayerRound(
+                    winnerId
+                );
+
+                return;
+            }
+
+            /*
+             * No alive players means there is no valid winner.
+             */
+            if (_alivePlayers.Count == 0)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] CheckRoundEnd: " +
+                    "no alive players remain."
+                );
+
+                return;
+            }
+
+            /*
+             * CHECK 2
+             *
+             * Team logic is only relevant when HKMP teams
+             * are enabled.
+             */
+            if (!_serverApi.ServerManager.ServerSettings.TeamsEnabled)
             {
                 return;
             }
 
-            ushort winnerId =
-                _alivePlayers.First();
+            object winningTeam;
 
-            EndRound(
-                winnerId
+            if (!TryGetTeamWinner(
+                out winningTeam))
+            {
+                return;
+            }
+
+            Modding.Logger.Log(
+                "[OneShotPvP] Round end detected: " +
+                "one alive team remains. " +
+                "WinnerTeam=" +
+                winningTeam
+            );
+
+            EndTeamRound(
+                winningTeam
             );
         }
 
-        private void EndRound(
+        private bool TryGetTeamWinner(
+            out object winningTeam)
+        {
+            winningTeam = null;
+
+            HashSet<object> aliveTeams =
+                new HashSet<object>();
+
+            int unteamedPlayers = 0;
+
+            foreach (ushort playerId in _alivePlayers)
+            {
+                IServerPlayer player;
+
+                if (!_serverApi.ServerManager.TryGetPlayer(
+                    playerId,
+                    out player))
+                {
+                    continue;
+                }
+
+                if (player == null)
+                {
+                    continue;
+                }
+
+                object team =
+                    player.Team;
+
+                /*
+                 * Team.None means that the player does not
+                 * belong to a team.
+                 *
+                 * An unteamed player is treated as an
+                 * independent side, so team victory cannot
+                 * be declared while one remains.
+                 */
+                if (team == null ||
+                    team.ToString() == "None")
+                {
+                    unteamedPlayers++;
+
+                    continue;
+                }
+
+                aliveTeams.Add(
+                    team
+                );
+            }
+
+            /*
+             * A mixed team / FFA situation cannot produce
+             * a team victory.
+             */
+            if (unteamedPlayers > 0)
+            {
+                return false;
+            }
+
+            /*
+             * Teams are enabled, but nobody is assigned
+             * to a team. This is ordinary FFA.
+             */
+            if (aliveTeams.Count == 0)
+            {
+                return false;
+            }
+
+            /*
+             * More than one team remains alive.
+             */
+            if (aliveTeams.Count > 1)
+            {
+                return false;
+            }
+
+            /*
+             * Exactly one team remains.
+             */
+            winningTeam =
+                aliveTeams.First();
+
+            return true;
+        }
+
+        private void EndPlayerRound(
             ushort winnerId)
         {
             if (!_roundActive)
@@ -393,7 +459,7 @@ namespace OneShotPvP.Server
             _roundActive = false;
 
             Modding.Logger.Log(
-                "[OneShotPvP] Round ended. " +
+                "[OneShotPvP] Player round ended. " +
                 "RoundId=" +
                 roundId +
                 " WinnerId=" +
@@ -415,6 +481,10 @@ namespace OneShotPvP.Server
                     "[OneShotPvP] Winner announced: " +
                     winner.Username
                 );
+
+                _statsManager.AddWin(
+                    winner.Username
+                );
             }
             else
             {
@@ -433,6 +503,116 @@ namespace OneShotPvP.Server
                 );
             }
 
+            FinishRound(
+                roundId
+            );
+        }
+
+        private void EndTeamRound(
+            object winningTeam)
+        {
+            if (!_roundActive)
+            {
+                return;
+            }
+
+            uint roundId =
+                _currentRoundId;
+
+            _roundActive = false;
+
+            string teamName =
+                winningTeam.ToString();
+
+            Modding.Logger.Log(
+                "[OneShotPvP] Team round ended. " +
+                "RoundId=" +
+                roundId +
+                " WinnerTeam=" +
+                teamName
+            );
+
+            _serverApi.ServerManager.BroadcastMessage(
+                "Победила команда: " +
+                teamName
+            );
+
+            /*
+             * Every alive player belonging to the winning
+             * team receives one win.
+             */
+            int winnersCount = 0;
+
+            foreach (ushort playerId in _alivePlayers)
+            {
+                IServerPlayer player;
+
+                if (!_serverApi.ServerManager.TryGetPlayer(
+                    playerId,
+                    out player))
+                {
+                    continue;
+                }
+
+                if (player == null)
+                {
+                    continue;
+                }
+
+                object playerTeam =
+                    player.Team;
+
+                if (playerTeam == null ||
+                    !playerTeam.Equals(
+                        winningTeam))
+                {
+                    continue;
+                }
+
+                if (_statsManager.AddWin(
+                    player.Username))
+                {
+                    winnersCount++;
+
+                    Modding.Logger.Log(
+                        "[OneShotPvP] Team winner recorded. " +
+                        "Player=" +
+                        player.Username +
+                        " Team=" +
+                        teamName
+                    );
+                }
+            }
+
+            Modding.Logger.Log(
+                "[OneShotPvP] Team victory recorded for " +
+                winnersCount +
+                " player(s). " +
+                "Team=" +
+                teamName
+            );
+
+            if (_network != null)
+            {
+                byte winnerTeam =
+                    System.Convert.ToByte(
+                        winningTeam
+                    );
+
+                _network.BroadcastTeamRoundEnd(
+                    roundId,
+                    winnerTeam
+                );
+            }
+
+            FinishRound(
+                roundId
+            );
+        }
+
+        private void FinishRound(
+            uint roundId)
+        {
             _damageSettings.Restore();
 
             _manaManager.Clear();
@@ -451,6 +631,7 @@ namespace OneShotPvP.Server
             _roundActive = false;
 
             _alivePlayers.Clear();
+
             _manaManager.Clear();
 
             _damageSettings.Restore();

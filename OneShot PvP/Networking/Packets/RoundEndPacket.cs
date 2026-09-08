@@ -8,6 +8,16 @@ namespace OneShotPvP.Networking.Packets
 
         public ushort WinnerId { get; private set; }
 
+        public bool IsTeamVictory
+        {
+            get
+            {
+                return WinnerTeam != byte.MaxValue;
+            }
+        }
+
+        public byte WinnerTeam { get; private set; }
+
         public bool IsReliable
         {
             get { return true; }
@@ -20,6 +30,7 @@ namespace OneShotPvP.Networking.Packets
 
         public RoundEndPacket()
         {
+            WinnerTeam = byte.MaxValue;
         }
 
         public RoundEndPacket(
@@ -28,6 +39,16 @@ namespace OneShotPvP.Networking.Packets
         {
             RoundId = roundId;
             WinnerId = winnerId;
+            WinnerTeam = byte.MaxValue;
+        }
+
+        public RoundEndPacket(
+            uint roundId,
+            byte winnerTeam)
+        {
+            RoundId = roundId;
+            WinnerId = 0;
+            WinnerTeam = winnerTeam;
         }
 
         public void WriteData(
@@ -40,6 +61,10 @@ namespace OneShotPvP.Networking.Packets
             packet.Write(
                 WinnerId
             );
+
+            packet.Write(
+                WinnerTeam
+            );
         }
 
         public void ReadData(
@@ -50,6 +75,9 @@ namespace OneShotPvP.Networking.Packets
 
             WinnerId =
                 packet.ReadUShort();
+
+            WinnerTeam =
+                packet.ReadByte();
         }
     }
 }
