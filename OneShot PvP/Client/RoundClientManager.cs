@@ -20,10 +20,9 @@ namespace OneShotPvP.Client
         public static void StartRound()
         {
             _roundActive = true;
-
             _deadPlayers.Clear();
 
-            LastAttackerTracker.Clear();
+            ClientDeathTracker.Reset();
 
             SetOneHealth();
 
@@ -52,7 +51,6 @@ namespace OneShotPvP.Client
             _roundActive = false;
 
             _deadPlayers.Clear();
-
             LastAttackerTracker.Clear();
 
             ClientManaManager.Clear();
