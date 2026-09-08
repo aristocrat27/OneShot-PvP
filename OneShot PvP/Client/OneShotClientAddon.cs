@@ -46,6 +46,8 @@ namespace OneShotPvP.Client
 
             LastAttackerTracker.Initialize();
 
+            HkmpElegyFix.Initialize();
+
             ClientDeathTracker.Initialize(
                 _network
             );

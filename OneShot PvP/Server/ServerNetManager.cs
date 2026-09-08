@@ -31,15 +31,15 @@ namespace OneShotPvP.Server
             _netSender =
                 serverApi.NetServer.GetNetworkSender<
                     OneShotClientPacketId>(
-                    addon
-                );
+                        addon
+                    );
 
             _netReceiver =
                 serverApi.NetServer.GetNetworkReceiver<
                     OneShotServerPacketId>(
-                    addon,
-                    InstantiatePacket
-                );
+                        addon,
+                        InstantiatePacket
+                    );
 
             _netReceiver.RegisterPacketHandler(
                 OneShotServerPacketId.ResetMana,
@@ -383,7 +383,7 @@ namespace OneShotPvP.Server
             ushort winnerId)
         {
             Modding.Logger.Log(
-                "[OneShotPvP] Broadcasting RoundEnd. " +
+                "[OneShotPvP] Broadcasting player RoundEnd. " +
                 "RoundId=" +
                 roundId +
                 " WinnerId=" +
@@ -395,6 +395,27 @@ namespace OneShotPvP.Server
                 new RoundEndPacket(
                     roundId,
                     winnerId
+                )
+            );
+        }
+
+        public void BroadcastTeamRoundEnd(
+            uint roundId,
+            byte winnerTeam)
+        {
+            Modding.Logger.Log(
+                "[OneShotPvP] Broadcasting team RoundEnd. " +
+                "RoundId=" +
+                roundId +
+                " WinnerTeam=" +
+                winnerTeam
+            );
+
+            _netSender.BroadcastSingleData(
+                OneShotClientPacketId.RoundEnd,
+                new RoundEndPacket(
+                    roundId,
+                    winnerTeam
                 )
             );
         }

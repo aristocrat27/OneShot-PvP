@@ -58,7 +58,9 @@ namespace OneShotPvP.Client
 
         public static void EndRound(
             uint roundId,
-            ushort winnerId)
+            ushort winnerId,
+            bool isTeamVictory,
+            byte winnerTeam)
         {
             if (!_roundActive)
             {
@@ -68,7 +70,11 @@ namespace OneShotPvP.Client
                     "RoundId=" +
                     roundId +
                     " WinnerId=" +
-                    winnerId
+                    winnerId +
+                    " IsTeamVictory=" +
+                    isTeamVictory +
+                    " WinnerTeam=" +
+                    winnerTeam
                 );
 
                 return;
@@ -84,7 +90,11 @@ namespace OneShotPvP.Client
                     " CurrentRoundId=" +
                     _currentRoundId +
                     " WinnerId=" +
-                    winnerId
+                    winnerId +
+                    " IsTeamVictory=" +
+                    isTeamVictory +
+                    " WinnerTeam=" +
+                    winnerTeam
                 );
 
                 return;
@@ -105,13 +115,26 @@ namespace OneShotPvP.Client
 
             ClientManaManager.Clear();
 
-            Modding.Logger.Log(
-                "[OneShotPvP] Client round ended. " +
-                "RoundId=" +
-                roundId +
-                " WinnerId=" +
-                winnerId
-            );
+            if (isTeamVictory)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] Client round ended. " +
+                    "RoundId=" +
+                    roundId +
+                    " WinningTeam=" +
+                    winnerTeam
+                );
+            }
+            else
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] Client round ended. " +
+                    "RoundId=" +
+                    roundId +
+                    " WinnerId=" +
+                    winnerId
+                );
+            }
         }
 
         public static bool IsPlayerDead(

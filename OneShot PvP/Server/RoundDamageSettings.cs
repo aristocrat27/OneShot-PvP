@@ -34,10 +34,28 @@ namespace OneShotPvP.Server
         private byte _originalThornOfAgonyDamage;
         private byte _originalSharpShadowDamage;
 
+        // Единственный активный экземпляр RoundDamageSettings.
+        // Нужен save-guard, который работает отдельно от RoundManager.
+        private static RoundDamageSettings _activeInstance;
+
+        /// <summary>
+        /// Показывает, изменяет ли OneShotPvP сейчас HKMP ServerSettings.
+        /// </summary>
+        public static bool IsActive
+        {
+            get
+            {
+                return _activeInstance != null &&
+                       _activeInstance._saved;
+            }
+        }
+
         public RoundDamageSettings(
             IServerApi serverApi)
         {
             _serverApi = serverApi;
+
+            _activeInstance = this;
         }
 
         public bool ApplyForRound()
@@ -126,9 +144,6 @@ namespace OneShotPvP.Server
 
                 // ==========================================
                 // НАСТРОЙКИ ONE SHOT PVP
-                //
-                // Это прямое изменение существующего
-                // ServerSettings, как делает HKMP /set.
                 // ==========================================
 
                 settings.NailDamage = 0;
@@ -162,11 +177,7 @@ namespace OneShotPvP.Server
                 settings.SharpShadowDamage = 0;
 
                 // ==========================================
-                // УВЕДОМЛЯЕМ HKMP ОБ ИЗМЕНЕНИИ НАСТРОЕК
-                //
-                // Это тот же метод, который вызывает
-                // штатная команда /set после изменения
-                // ServerSettings.
+                // УВЕДОМЛЯЕМ HKMP
                 // ==========================================
 
                 if (!NotifyServerSettingsUpdated())
@@ -238,57 +249,8 @@ namespace OneShotPvP.Server
                     return;
                 }
 
-                // ==========================================
-                // ВОЗВРАЩАЕМ ИМЕННО ТЕ ЗНАЧЕНИЯ,
-                // КОТОРЫЕ БЫЛИ ДО НАЧАЛА РАУНДА
-                // ==========================================
+                RestoreOriginalValues(settings);
 
-                settings.NailDamage =
-                    _originalNailDamage;
-
-                settings.GreatSlashDamage =
-                    _originalGreatSlashDamage;
-
-                settings.DashSlashDamage =
-                    _originalDashSlashDamage;
-
-                settings.CycloneSlashDamage =
-                    _originalCycloneSlashDamage;
-
-                settings.VengefulSpiritDamage =
-                    _originalVengefulSpiritDamage;
-
-                settings.ShadeSoulDamage =
-                    _originalShadeSoulDamage;
-
-                settings.DesolateDiveDamage =
-                    _originalDesolateDiveDamage;
-
-                settings.DescendingDarkDamage =
-                    _originalDescendingDarkDamage;
-
-                settings.HowlingWraithDamage =
-                    _originalHowlingWraithDamage;
-
-                settings.AbyssShriekDamage =
-                    _originalAbyssShriekDamage;
-
-                settings.GrubberflyElegyDamage =
-                    _originalGrubberflyElegyDamage;
-
-                settings.SporeShroomDamage =
-                    _originalSporeShroomDamage;
-
-                settings.SporeDungShroomDamage =
-                    _originalSporeDungShroomDamage;
-
-                settings.ThornOfAgonyDamage =
-                    _originalThornOfAgonyDamage;
-
-                settings.SharpShadowDamage =
-                    _originalSharpShadowDamage;
-
-                // Передаём восстановленные настройки HKMP.
                 NotifyServerSettingsUpdated();
 
                 _saved = false;
@@ -304,6 +266,109 @@ namespace OneShotPvP.Server
                     exception
                 );
             }
+        }
+
+        /// <summary>
+        /// Записывает оригинальные значения OneShotPvP в переданную
+        /// копию ServerSettings.
+        ///
+        /// ВАЖНО:
+        /// этот метод НЕ изменяет живые настройки HKMP.
+        ///
+        /// Он используется только HkmpGlobalSettingsSaveGuard,
+        /// чтобы HKMP записал в GlobalSettings оригинальные значения,
+        /// даже если раунд всё ещё активен.
+        /// </summary>
+        public static bool PreparePersistentServerSettings(
+            object serverSettingsObject)
+        {
+            if (!IsActive)
+            {
+                return false;
+            }
+
+            if (serverSettingsObject == null)
+            {
+                return false;
+            }
+
+            ServerSettings settings =
+                serverSettingsObject as ServerSettings;
+
+            if (settings == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                _activeInstance.RestoreOriginalValues(settings);
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Modding.Logger.Log(
+                    "[OneShotPvP] Failed to prepare persistent " +
+                    "HKMP ServerSettings: " +
+                    exception
+                );
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Возвращает сохранённые до начала раунда значения
+        /// в конкретный объект ServerSettings.
+        /// </summary>
+        private void RestoreOriginalValues(
+            ServerSettings settings)
+        {
+            settings.NailDamage =
+                _originalNailDamage;
+
+            settings.GreatSlashDamage =
+                _originalGreatSlashDamage;
+
+            settings.DashSlashDamage =
+                _originalDashSlashDamage;
+
+            settings.CycloneSlashDamage =
+                _originalCycloneSlashDamage;
+
+            settings.VengefulSpiritDamage =
+                _originalVengefulSpiritDamage;
+
+            settings.ShadeSoulDamage =
+                _originalShadeSoulDamage;
+
+            settings.DesolateDiveDamage =
+                _originalDesolateDiveDamage;
+
+            settings.DescendingDarkDamage =
+                _originalDescendingDarkDamage;
+
+            settings.HowlingWraithDamage =
+                _originalHowlingWraithDamage;
+
+            settings.AbyssShriekDamage =
+                _originalAbyssShriekDamage;
+
+            settings.GrubberflyElegyDamage =
+                _originalGrubberflyElegyDamage;
+
+            settings.SporeShroomDamage =
+                _originalSporeShroomDamage;
+
+            settings.SporeDungShroomDamage =
+                _originalSporeDungShroomDamage;
+
+            settings.ThornOfAgonyDamage =
+                _originalThornOfAgonyDamage;
+
+            settings.SharpShadowDamage =
+                _originalSharpShadowDamage;
         }
 
         private bool NotifyServerSettingsUpdated()
