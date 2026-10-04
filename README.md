@@ -1,83 +1,76 @@
-***Ваншот PvP*** -
-<i>Быстрый PvP-режим для Hollow Knight, в котором каждый игрок начинает раунд с 1 ХП и ограниченным количеством кастов.</i>
+# OneShot PvP
 
-
-
-## Правила
-
-### Урон
-
-### Следующие источники урона не наносят урон:
-
-1. ### Гвоздь
-2. ### Пронизывающая тень
-3. ### Колючки страданий
-4. ### Ураганный удар
-
-### Исходя из названия режима, у каждого игрока всего 1 ХП.
-
-### Амулеты
-
-### Разрешены все амулеты, за исключением:
-
-1. ### Искажателя заклинаний
-2. ### Души короля
-3. ### Спорового гриба
-4. ### Любых амулетов, дающих дополнительное ХП Живокрови
-
-Тотемы с маной на картах, где они присутствуют, разрешены.
+*A fast-paced PvP mode for Hollow Knight where every player starts the round with 1 HP and a limited number of spell casts.*
 
 ---
 
-# Мана
+## Rules
 
-### В начале каждого раунда игрок получает 1 каст.
+### Damage
+The following damage sources deal **no damage**:
+1. **Nail** (Standard attacks)
+2. **Sharp Shadow**
+3. **Thorns of Agony**
+4. **Cyclone Slash**
 
-### За убийство противника игрок получает количество кастов, равное количеству кастов у убитого игрока, но не менее 1.
+*True to the mode's name, every player has exactly 1 HP.*
 
-### Касты можно накапливать в течение раунда.
+### Charms
+All charms are **allowed**, with the exception of:
+1. **Spell Twister**
+2. **Kingsoul**
+3. **Spore Shroom**
+4. Any charms that grant additional **Lifeblood HP**
 
-### Касты не переносятся между раундами.
+*SOUL Totems present on the maps are allowed and fully functional.*
 
-# 
+---
 
-# Раунд запускается командой:
+## SOUL & Spell Casts
 
-# ***/start***
+* **Round Start:** Every player receives exactly **1 spell cast** at the beginning of each round.
+* **Kill Reward:** Killing an opponent grants you a number of casts equal to what the deceased player had at the moment of death, but **never less than 1**.
+* **Accumulation:** Spell casts can be accumulated throughout the active round.
+* **No Carryover:** Unused spell casts do not carry over to the next round.
 
-### После запуска:
+---
 
-### все игроки получают 1 ХП;
+## Match Progression
 
-### все игроки получают 1 каст;
+A round is initiated by using the chat command:
+`*** /start ***`
 
-### начинается новый раунд;
+### Upon Activation:
+* All players are set to **1 HP**.
+* All players receive **1 spell cast**.
+* A new round officially begins.
+* All connected players are automatically registered to participate in the current round.
 
-### все игроки участвуют в текущем раунде.
+### Round End Conditions:
+* The round continues until only one surviving player or one victorious team remains.
+* The round automatically concludes the moment a winner is determined.
+* An individual player's victory awards them 1 win point.
+* In team mode, victory points are awarded to all active members of the winning team.
+* Once a round ends, temporary PvP constraints are disabled, allowing players to prepare for the next round and start it again using the `/start` command.
 
-### 
+---
 
-### Раунд продолжается до тех пор, пока не останется только один живой игрок или одна победившая команда.
-### Раунд автоматически заканчивается, когда определяется победитель.
-### При победе одного игрока ему засчитывается победа.
-### В командном режиме победа засчитывается всем участникам победившей команды.
-### После окончания раунда временные правила PvP отключаются, а игроки могут начать следующий раунд командой /start.
+## Team Mode
+* If teams are participating, the round concludes when only one team remains alive.
+* A victory is credited to every single member of the winning team.
 
-### Команды
-### Если участвуют команды, раунд заканчивается, когда остаётся только одна команда.
-### Победа засчитывается каждому игроку победившей команды.
+---
 
-##### 
+## Chat Commands
 
-# 
+* `/start` — Initiates a new OneShot PvP round and resets participant states.
+* `/stats` — Displays win statistics for all players during the current host session. Players are ranked in descending order (from highest to lowest number of victories). Statistics persist for the duration of the current host session.
 
-### ***/stats*** - показывает статистику побед игроков за текущую сессию хоста.
-### Игроки отображаются в порядке количества побед — от большего к меньшему.
-### Статистика сохраняется в течение текущей сессии хоста.
+---
 
-## 
+## Community & Credits
+`OneShotPvP` is a proud part of the official **Hollow Knight PvP-Events Community**.  
+Announcements, tournaments, alternative PvP modes, and additional information can be found here:
+* **[Events HK on Telegram](https://t.me/Events_HK)**
 
-## OneShotPvP является частью PvP-Events-сообщества Hollow Knight.
-## Анонсы, Ивенты, другие PvP-режимы и дополнительная информация в Telegram:
-# [Events HK](https://t.me/Events_HK)
-Часть кода проекта была написана с помощью ИИ. Финальный код поддерживается, интегрируется и тестируется автором проекта.
+> *A portion of this project's code was optimized and generated using AI. The final codebase is fully maintained, integrated, and thoroughly tested by the project author.*
